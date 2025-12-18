@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGIS Kecamatan Pungging - Mojokerto</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- OpenLayers CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.5.2/ol.css">
+    
+    <!-- OL-Geocoder CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol-geocoder@latest/dist/ol-geocoder.min.css">
+    
+    <!-- OL-LayerSwitcher CSS -->
+    <link rel="stylesheet" href="https://cdn.rawgit.com/walkermatt/ol-layerswitcher/master/dist/ol-layerswitcher.css">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            scroll-behavior: smooth;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        
+        .header h1 { font-size: 2rem; margin-bottom: 10px; }
+        .header p { font-size: 1rem; }
+        .hashtag { font-size: 1.5rem; font-weight: 800; margin-top: 10px; }
+        
+        .nav {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0;
+        }
+        
+        .nav a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 18px 28px;
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .nav a:hover, .nav a.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        section {
+            padding: 60px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .section-title h2 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .hero { background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1)); }
+        
+        .hero-text { line-height: 1.8; color: #555; text-align: justify; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .stat-icon {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        
+        .map-section {
+            padding: 60px 20px;
+            background: #ecf0f1;
+            max-width: 100%;
+        }
+        
+        #web-map {
+            height: 650px;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border: 3px solid white;
+        }
+        
+        .search-filter-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: rgba(52, 118, 185, 0.56);
+            padding: 10px 15px;
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+            max-width: 300px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 40px 10px 15px;
+            border: none;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            background: white;
+            color: #2c3e50;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .search-box input:focus {
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transform: scale(1.02);
+        }
+        
+        .search-box i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group select {
+            padding: 10px 35px 10px 15px;
+            border: none;
+            border-radius: 25px;
+            background: white;
+            color: #2c3e50;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0);
+            min-width: 150px;
+        }
+        
+        .filter-group select:hover {
+            background-color: #f8f9fa;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn-reset {
+            padding: 10px 20px;
+            border: 2px solid white;
+            border-radius: 25px;
+            background: transparent;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-reset:hover {
+            background: white;
+            color: #667eea;
+            transform: scale(1.05);
+        }
+        
+        .result-counter {
+            background: rgba(1, 255, 115, 0.53);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        #popup {
+            position: absolute;
+            background-color: white;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            padding: 0;
+            border-radius: 12px;
+            border: 2px solid #667eea;
+            bottom: 12px;
+            left: -50px;
+            min-width: 280px;
+            max-width: 400px;
+            overflow: hidden;
+        }
+        
+        #popup:after, #popup:before {
+            top: 100%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        #popup:after {
+            border-top-color: white;
+            border-width: 10px;
+            left: 48px;
+            margin-left: -10px;
+        }
+        
+        #popup:before {
+            border-top-color: #667eea;
+            border-width: 13px;
+            left: 48px;
+            margin-left: -13px;
+        }
+        
+        #popup-closer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+            background: #e74c3c;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        #popup-closer:hover {
+            background: #c0392b;
+            transform: rotate(90deg);
+        }
+        
+        #popup-content {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        #popup-content h3 {
+            margin: 0 0 15px 0;
+            color: white;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 12px 15px;
+            margin: -20px -20px 15px -20px;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        #popup-content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        #popup-content table tr {
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        #popup-content table tr:last-child {
+            border-bottom: none;
+        }
+        
+        #popup-content table td {
+            padding: 8px 5px;
+            font-size: 0.9rem;
+        }
+        
+        #popup-content table td:first-child {
+            font-weight: 600;
+            color: #2c3e50;
+            width: 40%;
+        }
+        
+        .mousePosition {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2c3e50;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #ecf0f1;
+        }
+        
+        .profile-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .profile-header { text-align: center; margin-bottom: 50px; }
+        .profile-header h2 { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; }
+        
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .col-adka {
+            grid-row: 1 / 4;
+            grid-column: 1;
+        }
+        
+        .profile-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        
+        .profile-card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .profile-card-double {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0 auto 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .profile-avatar-text {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .profile-avatar-large {
+            width: 200px;
+            height: 200px;
+            font-size: 4rem;
+        }
+        
+        .profile-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .profile-nim {
+            background: #f0f0f0;
+            padding: 8px 15px;
+            border-radius: 20px;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .hashtag-footer {
+            font-weight: 800;
+            font-size: 1.3rem;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 992px) {
+            .profile-grid { grid-template-columns: repeat(2, 1fr); }
+            .col-adka { grid-row: 1 / 3; }
+            .profile-avatar-large { width: 150px; height: 150px; font-size: 3rem; }
+        }
+        
+        @media (max-width: 768px) {
+            .nav ul { flex-direction: column; }
+            .nav a { width: 100%; text-align: center; }
+        }
+        
+        @media (max-width: 576px) {
+            .profile-grid { grid-template-columns: 1fr; }
+            .col-adka { grid-row: auto; }
+            .profile-avatar-large { width: 120px; height: 120px; font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    
+    <header class="header">
+        <h1><i class="fas fa-map-marked-alt"></i> WebGIS Kecamatan Pungging</h1>
+        <p>Peta Persebaran Fasilitas Umum & Sosial - Kabupaten Mojokerto, Jawa Timur</p>
+        <div class="hashtag">#ROMBONGANNYENI</div>
+    </header>
+     
+    <nav class="nav">
+        <ul>
+            <li><a href="#beranda" class="active"><i class="fas fa-home"></i> BERANDA</a></li>
+            <li><a href="#peta"><i class="fas fa-map"></i> PETA</a></li>
+            <li><a href="#kategori"><i class="fas fa-th-large"></i> KATEGORI</a></li>
+            <li><a href="#profil"><i class="fas fa-users"></i> PROFIL</a></li>
+        </ul>
+    </nav>
+
+    <section id="beranda" class="hero">
+        <div class="section-title">
+            <h2>Selamat Datang di WebGIS Kecamatan Pungging</h2>
+        </div>
+        <div class="hero-text">
+            <p>Kecamatan Pungging merupakan salah satu kecamatan di Kabupaten Mojokerto, Jawa Timur, yang terletak di bagian barat wilayah kabupaten dan berbatasan dengan Kecamatan Trowulan serta beberapa kecamatan lain di sekitarnya. Wilayah ini didominasi oleh kawasan pedesaan dengan mata pencaharian utama penduduknya di sektor pertanian, peternakan, dan usaha kecil.</p>
+            <p style="margin-top: 15px;">Pungging memiliki peran pendukung terhadap kawasan bersejarah Trowulan yang dikenal sebagai pusat peninggalan Kerajaan Majapahit, sehingga aktivitas sosial dan ekonominya juga dipengaruhi oleh sektor perdagangan dan jasa.</p>
+        </div>
+    </section>
+    
+    <section id="peta" class="map-section">
+        <div class="section-title">
+            <h2><i class="fas fa-globe"></i> Peta Interaktif</h2>
+            <p>Peta Persebaran Fasilitas Umum & Sosial Kecamatan Pungging</p>
+        </div>
+        
+        <div class="search-filter-container">
+            <div class="search-box">
+                <input type="search" id="searchInput" placeholder="Cari nama fasilitas..." autocomplete="off">
+                <i class="fas fa-search"></i>
+            </div>
+            
+            <div class="filter-group">
+                <select id="filterJenis">
+                    <option value="">Semua Jenis</option>
+                    <option value="Bangunan Pendidikan">Bangunan Pendidikan</option>
+                    <option value="Bangunan Kesehatan">Bangunan Kesehatan</option>
+                    <option value="Bangunan Peribadatan">Bangunan Peribadatan</option>
+                    <option value="Bangunan Perkantoran dan Perekonomian">Perkantoran & Perekonomian</option>
+                    <option value="Bangunan Permukiman">Permukiman</option>
+                    <option value="Bangunan Transportasi">Transportasi</option>
+                    <option value="Bangunan Hankam">Hankam</option>
+                    <option value="Makam">Makam</option>
+                </select>
+                
+                <select id="filterTema">
+                    <option value="">Semua Tema</option>
+                    <option value="Bangunan">Bangunan</option>
+                    <option value="Area Terbuka">Area Terbuka</option>
+                </select>
+            </div>
+            
+            <button class="btn-reset" id="btnReset">
+                <i class="fas fa-redo"></i> Reset
+            </button>
+            
+            <div class="result-counter">
+                <i class="fas fa-map-pin"></i>
+                <span id="featureCount">0</span> hasil
+            </div>
+        </div>
+        
+        <div id="web-map"></div>
+        
+        <div id="popup">
+            <a href="#" id="popup-closer">×</a>
+            <div id="popup-content"></div>
+        </div>
+    </section>
+    
+    <section id="kategori" class="stats">
+        <div class="section-title">
+            <h2><i class="fas fa-chart-pie"></i> Dashboard Statistik Fasilitas</h2>
+            <p>Data Persebaran Fasilitas Umum dan Sosial di Kecamatan Pungging</p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-building"></i></div>
+                <div class="stat-number">29</div>
+                <div class="stat-label">Fasilitas Umum</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-heart"></i></div>
+                <div class="stat-number">52</div>
+                <div class="stat-label">Fasilitas Sosial</div>
+            </div>
+                     
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-briefcase"></i></div>
+                <div class="stat-number">25</div>
+                <div class="stat-label">Perkantoran</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-graduation-cap"></i></div>
+                <div class="stat-number">10</div>
+                <div class="stat-label">Pendidikan</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-hospital"></i></div>
+                <div class="stat-number">05</div>
+                <div class="stat-label">Kesehatan</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-mosque"></i></div>
+                <div class="stat-number">05</div>
+                <div class="stat-label">Peribadatan</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-shield-alt"></i></div>
+                <div class="stat-number">02</div>
+                <div class="stat-label">Hankam</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-home"></i></div>
+                <div class="stat-number">02</div>
+                <div class="stat-label">Permukiman</div>
+            </div>
+        </div>
+    </section>
+    
+    <section id="profil" class="profile-section">
+        <div class="profile-header">
+            <h2>#BERANITAMPILBEDA</h2>
+            <p>PROFIL ANGGOTA KELOMPOK 1</p>
+            <p>Institut Teknologi Nasional Malang</p>
+        </div>
+        
+        <div class="profile-grid">
+            <div class="col-adka">
+                <div class="profile-card profile-card-double">
+                    <div class="profile-avatar profile-avatar-large">
+                        <img id="img-0" style="display: none;">
+                    </div>
+                    <div class="profile-name">ADKA YULIANANDA MABRUR S.T, M.T.</div>
+                    <div class="profile-nim">Dosen Pembimbing</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="profile-card">
+                    <div class="profile-avatar">
+                        <img id="img-1" style="display: none;">
+                    </div>
+                    <div class="profile-name">YEHEZKIEL SEBASTIAN ABEL</div>
+                    <div class="profile-nim">2225002</div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="profile-card">
+                    <div class="profile-avatar">
+                        <img id="img-2" style="display: none;">
+                    </div>
+                    <div class="profile-name">AHMAD MUTHORIQ AZIZ</div>
+                    <div class="profile-nim">2225008</div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="profile-card">
+                    <div class="profile-avatar">
+                        <img id="img-3" style="display: none;">
+                    </div>
+                    <div class="profile-name">AHMAD RAHMAN FARIZI</div>
+                    <div class="profile-nim">2225019</div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="profile-card">
+                    <div class="profile-avatar">
+                        <img id="img-4" style="display: none;">
+                    </div>
+                    <div class="profile-name">YO INDRA MUGHNI</div>
+                    <div class="profile-nim">2225034</div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="profile-card">
+                    <div class="profile-avatar">
+                        <img id="img-5" style="display: none;">
+                    </div>
+                    <div class="profile-name">MADE ASPRADITA MANIK PRAYOGA</div>
+                    <div class="profile-nim">2225041</div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="profile-card">
+                    <div class="profile-avatar">
+                        <img id="img-6" style="display: none;">
+                    </div>
+                    <div class="profile-name">DANANG OKTAVIANO</div>
+                    <div class="profile-nim">2225049</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <footer>
+        <h4><i class="fas fa-university"></i> Institut Teknologi Nasional Malang</h4>
+        <p>Kelompok 1 - WebGIS Kecamatan Pungging</p>
+        <div class="hashtag-footer">#ROMBONGANNYENI #BERANITAMPILBEDA #JANSEEZ</div>
+        <p>&copy; 2025 Kelompok 1 - All Rights Reserved</p>
+    </footer>
+    
+    <!-- OpenLayers JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.5.2/dist/ol.js"></script>
+    
+    <!-- OL-LayerSwitcher JS -->
+    <script src="https://cdn.rawgit.com/walkermatt/ol-layerswitcher/master/dist/ol-layerswitcher.js"></script>
+    
+    <!-- OL-Geocoder JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ol-geocoder@latest/dist/ol-geocoder.js"></script>
+    
+    <script>
+        // Smooth scroll & active nav
+        document.querySelectorAll('.nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav a').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) window.scrollTo({ top: target.offsetTop - 60, behavior: 'smooth' });
+            });
+        });
+
+        // Load avatars
+        const avatarImages = {
+            0: './Foto/Pak Adka Dosen.jpg',
+            1: './Foto/Eki.jpeg',
+            2: './Foto/Thoriq.jpeg',
+            3: './Foto/Zipar.jpeg',
+            4: './Foto/Indra.jpeg',
+            5: './Foto/Aspradita.jpeg',
+            6: './Foto/Danang.jpeg'
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            for (let id in avatarImages) {
+                const img = document.getElementById('img-' + id);
+                if (avatarImages[id] && img) {
+                    img.src = avatarImages[id];
+                    img.style.display = 'block';
+                    img.onerror = () => {
+                        img.style.display = 'none';
+                        console.log('Avatar ' + id + ' tidak dapat dimuat');
+                    };
+                }
+            }
+        });
+        
+        // Initialize Map
+        window.onload = function() {
+            var map = new ol.Map({
+                view: new ol.View({
+                    center: [12539102.934913194, -891111.2252792659],
+                    zoom: 12.7
+                }),
+                layers: [
+                    new ol.layer.Tile({ 
+                        source: new ol.source.OSM(), 
+                        title: 'OpenStreetMap', 
+                        type: 'base' 
+                    })
+                ],
+                target: 'web-map'
+            });
+
+            // Satellite Layer
+            var maptilerSat = new ol.layer.Tile({
+                source: new ol.source.TileJSON({
+                    attributions: '© MapTiler',
+                    url: 'https://api.maptiler.com/maps/satellite/tiles.json?key=kL4h3teUxLgMXlvtDaYe'
+                }),
+                title: 'Satellite Map', 
+                type: 'base', 
+                visible: false
+            });
+            map.addLayer(maptilerSat);
+
+            // Bangunan Layer
+            map.addLayer(new ol.layer.Vector({
+                source: new ol.source.Vector({ 
+                    url: './Data/Bangunan.geojson', 
+                    format: new ol.format.GeoJSON() 
+                }),
+                title: 'Bangunan', 
+                visible: true
+            }));
+
+            // Area Terbuka Layer
+            map.addLayer(new ol.layer.Vector({
+                source: new ol.source.Vector({ 
+                    url: './Data/Area_Terbuka.geojson', 
+                    format: new ol.format.GeoJSON() 
+                }),
+                title: 'Area Terbuka', 
+                visible: true
+            }));
+
+            // Toponimi Layer
+            var sourceToponimi = new ol.source.Vector({
+                url: './Data/Toponimi.geojson',
+                format: new ol.format.GeoJSON()
+            });
+
+            var layerToponimi = new ol.layer.Vector({
+                source: sourceToponimi,
+                style: new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 7,
+                        fill: new ol.style.Fill({ color: '#00ff44ff' }),
+                        stroke: new ol.style.Stroke({ color: '#ffffff', width: 2 })
+                    })
+                }),
+                title: 'Point Persebaran',
+                visible: true
+            });
+            map.addLayer(layerToponimi);
+
+            // Update count when loaded
+            sourceToponimi.on('featuresloadend', function() {
+                document.getElementById('featureCount').innerText = sourceToponimi.getFeatures().length;
+            });
+
+            // Filter Function
+            const searchInput = document.getElementById('searchInput');
+            const filterJenis = document.getElementById('filterJenis');
+            const filterTema = document.getElementById('filterTema');
+            const btnReset = document.getElementById('btnReset');
+
+            function filterData() {
+                const keyword = searchInput.value.toLowerCase();
+                const selectedJenis = filterJenis.value;
+                const selectedTema = filterTema.value;
+                
+                const features = sourceToponimi.getFeatures();
+                let visibleCount = 0;
+
+                features.forEach(function(feature) {
+                    const props = feature.getProperties();
+                    const nama = props.Nama ? props.Nama.toLowerCase() : "";
+                    const jenis = props.Jenis || "";
+                    const tema = props.Tema || "";
+
+                    const matchName = nama.includes(keyword);
+                    const matchJenis = selectedJenis === "" || jenis === selectedJenis;
+                    const matchTema = selectedTema === "" || tema === selectedTema;
+
+                    if (matchName && matchJenis && matchTema) {
+                        feature.setStyle(null);
+                        visibleCount++;
+                    } else {
+                        feature.setStyle(new ol.style.Style({}));
+                    }
+                });
+                
+                document.getElementById('featureCount').innerText = visibleCount;
+            }
+
+            searchInput.addEventListener('input', filterData);
+            filterJenis.addEventListener('change', filterData);
+            filterTema.addEventListener('change', filterData);
+
+            btnReset.addEventListener('click', function() {
+                searchInput.value = '';
+                filterJenis.value = '';
+                filterTema.value = '';
+                sourceToponimi.getFeatures().forEach(f => f.setStyle(null));
+                document.getElementById('featureCount').innerText = sourceToponimi.getFeatures().length;
+            });
+
+            // Popup
+            var popupContainer = document.getElementById('popup');
+            var popupContent = document.getElementById('popup-content');
+            var popupCloser = document.getElementById('popup-closer');
+            var overlay = new ol.Overlay({ 
+                element: popupContainer, 
+                autoPan: true 
+            });
+            map.addOverlay(overlay);
+
+            popupCloser.onclick = function() {
+                overlay.setPosition(undefined);
+                popupCloser.blur();
+                return false;
+            };
+
+            map.on('singleclick', function(evt) {
+                var feature = map.forEachFeatureAtPixel(evt.pixel, function(f, l) {
+                    if (l === layerToponimi) return f;
+                });
+
+                if (feature) {
+                    var style = feature.getStyle();
+                    if (style && typeof style.getImage === 'function' && !style.getImage()) return; 
+                    
+                    var coords = feature.getGeometry().getCoordinates();
+                    var props = feature.getProperties();
+                    
+                    var content = '<h3><i class="fas fa-info-circle"></i> Info Lokasi</h3><table>';
+                    if(props.Nama) content += `<tr><td><strong>Nama</strong></td><td>${props.Nama}</td></tr>`;
+                    if(props.Jenis) content += `<tr><td><strong>Jenis</strong></td><td>${props.Jenis}</td></tr>`;
+                    if(props.Toponimi) content += `<tr><td><strong>Ket.</strong></td><td>${props.Toponimi}</td></tr>`;
+                    content += '</table>';
+                    
+                    popupContent.innerHTML = content;
+                    overlay.setPosition(coords);
+                } else {
+                    overlay.setPosition(undefined);
+                }
+            });
+
+            map.on('pointermove', function(evt) {
+                var hit = map.forEachFeatureAtPixel(evt.pixel, function(f, l) {
+                    var s = f.getStyle();
+                    var isVisible = (s === null) || (s && typeof s.getImage === 'function' && s.getImage());
+                    return l === layerToponimi && isVisible;
+                });
+                map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+            });
+
+            // Controls
+            map.addControl(new ol.control.LayerSwitcher());
+            map.addControl(new ol.control.ZoomSlider());
+            map.addControl(new ol.control.ScaleLine({ bar: true, steps: 4, text: true }));
+            
+            var mousePosition = new ol.control.MousePosition({
+                className: 'mousePosition',
+                projection: 'EPSG:4326',
+                coordinateFormat: function(coordinate) {
+                    return ol.coordinate.format(coordinate, 'Lat: {y} | Lon: {x}', 6);
+                }
+            });
+            map.addControl(mousePosition);
+
+            var geocoder = new Geocoder('nominatim', {
+                provider: 'osm',
+                lang: 'id-ID',
+                placeholder: 'Cari lokasi...',
+                limit: 5,
+                autoComplete: true
+            });
+            map.addControl(geocoder);
+        };
+    </script>
+</body>
+</html>
